@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./login.css";
 
 function Login() {
   const api = "http://127.0.0.1:8000";
@@ -42,8 +43,8 @@ function Login() {
   };
 
   return (
-    <div className="login_page">
-      <div>
+    <>
+      {/* <div className="login_page">
         <h3>Hey Librarian, Please log in to proceed your job.</h3>
         <div>
           <form onSubmit={handleSubmit}>
@@ -77,8 +78,28 @@ function Login() {
             <button>Cancel</button>
           </form>
         </div>
+      </div> */}
+      <div id="wrapper">
+        <div class="main-content">
+          <div class="header">
+            {/* <h3>Hey Librarian, Please log in to proceed your job.</h3> */}
+          </div>
+          <div class="l-part">
+            <input type="text" placeholder="Username" class="input-1" />
+            <div class="overlap-text">
+              <input type="password" placeholder="Password" class="input-2" />
+              {/* <a href="#">Forgot?</a> */}
+            </div>
+            <input type="button" value="Log in" class="btn" />
+          </div>
+        </div>
+        <div class="sub-content">
+          <div class="s-part">
+            Don't have an account?<a href="/">Sign up</a>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
