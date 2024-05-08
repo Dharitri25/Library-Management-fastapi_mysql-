@@ -1,15 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from typing import Annotated
-import modelTables
-from model import UserBase, Librarian, Book, Category, Author, Publisher, BookIssue, Token
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
-from datetime import datetime
 from passlib.context import CryptContext
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+from typing import Annotated
+from datetime import datetime
+import modelTables
+from model import UserBase, Librarian, Book, Category, Author, Publisher, BookIssue, Token
 
 # app instance
 app = FastAPI(title="Library Management System")
@@ -30,13 +30,25 @@ db_dependency = Annotated[Session, Depends(get_db)]
 # JWT Configuration
 SECRET_KEY = "9a8d3f94e2c1b0a7f6e5d4c3b2a19081"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 180
 
 # variables for authentication
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # FastAPI OAuth2PasswordBearer for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+#path
+origins = ['http://localhost:3000']
+
+#middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = origins,
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
 
 
 
@@ -77,14 +89,17 @@ def get_current_active_librarian(token: str = Depends(oauth2_scheme), db: Sessio
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        print("1",username)
         if username is None:
             raise credential_exception
         
         user = db.query(modelTables.Librarian).filter(modelTables.Librarian.librarian_name == username).first()
+        print("1",user)
         if user is None:
             raise credential_exception
         return user
     except JWTError:
+        print("hhh")
         raise credential_exception
 
 
@@ -94,7 +109,7 @@ def get_current_active_librarian(token: str = Depends(oauth2_scheme), db: Sessio
 # _______________________________________________________librarians____________________________________________________
 # login and generate jwt token
 # sign up librarian
-@app.post("/librarians/sign_up/", response_model= Token, tags=["auth-librarian"])
+@app.post("/librarians/sign_up", response_model= Token, tags=["auth-librarian"])
 async def sign_up(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     existing_librarian = db.query(modelTables.Librarian).filter(modelTables.Librarian.librarian_name == form_data.username).first()
     if existing_librarian:
@@ -179,12 +194,15 @@ async def get_librarian_by_id(librarian_id : str, db: db_dependency, current_lib
 # sign out
 @app.post("/librarians/sign_out", status_code=status.HTTP_200_OK, tags=["auth-librarian"])
 async def sign_out(db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
+    print("$$$$$$$$$$$$$$$$$$$$$$$$", current_librarian)
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
     
     db.query(modelTables.Librarian).filter(modelTables.Librarian.librarian_name == current_librarian.librarian_name).update({"active": False})
     db.commit()
     return {"message":"Librarian logged out successfully"}
+
+
 
 
 # _______________________________________________________users____________________________________________________
@@ -312,7 +330,7 @@ async def get_all_books(db:db_dependency, current_librarian: Librarian = Depends
 
 # get book by id
 @app.get("/books/get_book_by_id={book_id}", status_code=status.HTTP_200_OK, tags=["book"])
-async def get_book_by_id(book_id:str, db:db_dependency,current_librarian: Librarian = Depends(get_current_active_librarian)):
+async def get_book_by_id(book_id:str, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
     
@@ -733,6 +751,50 @@ async def get_book_by_title_and_author(title: str, author: str, db:db_dependency
                     searched_books.append(j)
     return searched_books
 
+
+# get books by categories
+@app.get("/books/get_books_by_category={cat_id}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
+async def get_books_by_category(cat_id: int, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
+    if not current_librarian:
+        raise HTTPException(401, detail="You are not authenticated")
+    
+    checkCategory = db.query(modelTables.Category).filter(modelTables.Category.id == cat_id).first()
+    if checkCategory is None:
+        raise HTTPException(status_code=404, detail="Cateogy not found!")
+    
+    all_books = db.query(modelTables.Book).all()
+    searched_books = []
+
+    for book in all_books:
+        if book.category == cat_id:
+            book_author = db.query(modelTables.Author).filter(modelTables.Author.id == book.author).first().name
+            book_publisher = db.query(modelTables.Publisher).filter(modelTables.Publisher.id == book.publisher).first().name
+            book_obj = {
+                "id":book.id,
+                "title":book.title,
+                "author":book_author,
+                "publisher":book_publisher,
+                "category":checkCategory.name,
+                "copies":book.copies,
+            }
+            searched_books.append(book_obj)
+
+    return searched_books
+
+
+# get searched book from books by category
+@app.get("/books/get_books_by_category={cat_id}/search={search}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
+async def get_searchedBook_by_category(cat_id: int, search: str, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
+    if not current_librarian:
+        raise HTTPException(401, detail="You are not authenticated")
+    
+    books_by_category = await get_books_by_category(cat_id, db)
+    searched_books = []
+    for book in books_by_category:
+        if search.lower() in book["title"].lower() or search.lower() in book["author"].lower() or search.lower() in book["publisher"].lower():
+            searched_books.append(book)
+
+    return searched_books
 
 
 
