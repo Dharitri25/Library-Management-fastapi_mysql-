@@ -2,7 +2,7 @@
   width: 100%;
   height: 100%;
   margin: 0;
-  background-image: url("../../../welcome_bg.jpg") !important;
+  background-image: url("../../../welcome_bg.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -70,6 +70,17 @@ nav ul li a {
 nav ul li a:hover {
   background-color: #f0f0f0;
 }
+
+nav ul li span {
+  border: 1px solid #5a5a5a;
+  border-radius: 5px;
+}
+
+nav ul li span:hover {
+  border: 1px solid #d3d3d3;
+  cursor: pointer;
+}
+
 .nav-button {
   color: #333;
   background-color: #eeedede8;
@@ -197,6 +208,15 @@ body {
   & .icon-wrapper i {
     transform: translateY(5px);
   }
+}
+
+.no-cat-home {
+  color: black;
+  text-align: center;
+  background: #f0f8ff6e;
+  padding: 20px;
+  font-size: xx-large;
+  height: fit-content;
 }
 
 /* side bar home */

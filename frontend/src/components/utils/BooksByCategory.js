@@ -8,7 +8,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
-import { convertLength } from "@mui/material/styles/cssUtils";
 
 function BooksByCategory() {
   const navigate = useNavigate();
@@ -20,14 +19,14 @@ function BooksByCategory() {
   };
 
   const [booksBycategory, setBookByCategory] = useState([]);
-  const [search, setSearch] = useState("");
-  console.log({ category });
 
   const getBooksByCategory = async (category) => {
     if (category) {
       try {
         await axios
-          .get(`${api}/books/get_books_by_category=${category}`, { headers })
+          .get(`${api}/bookSearch/get_books_by_category=${category}`, {
+            headers,
+          })
           .then((res) => {
             res?.data && setBookByCategory(res.data);
           });

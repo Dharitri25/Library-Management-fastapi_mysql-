@@ -79,6 +79,7 @@ class BookIssueRecord(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     issued_by = Column(Integer, ForeignKey('librarians.librarian_id'))
     issue_time = Column(DateTime)
+    issue_status = Column(String(10))
 
     # Establishing relationships with the Book, User, and Librarian tables
     book = relationship("Book", back_populates="book_issue_records")

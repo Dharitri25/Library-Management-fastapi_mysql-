@@ -1,10 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "./welcome.css";
 import { useNavigate } from "react-router-dom";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
+import { checkToken } from "./commonFunctionalities";
 
 function Welcome() {
   const navigate = useNavigate();
+  const [isToken, setIsToken] = useState(false);
+  let token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const checkISToken = async () => {
+      let tokenIsActive = await checkToken();
+      setIsToken(tokenIsActive);
+    };
+
+    checkISToken();
+  }, [token]);
 
   return (
     <div className="welcome-page">
@@ -23,9 +35,11 @@ function Welcome() {
                 <span
                   className="nav-link"
                   aria-current="page"
-                  onClick={() => navigate("/home")}
+                  onClick={() =>
+                    isToken ? navigate("/home") : navigate("/user-home")
+                  }
                 >
-                  Home
+                  Check out Books
                 </span>
               </li>
               <li className="nav-item">

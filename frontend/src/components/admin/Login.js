@@ -119,7 +119,7 @@ function Login() {
         <div className="sub-content">
           <div className="s-part">
             Not a librarian and just want to check out book?
-            <span onClick={() => navigate("/home")}>check out books</span>
+            <span onClick={() => navigate("/user-home")}>check out books</span>
           </div>
         </div>
       </div>

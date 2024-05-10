@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import "./welcome.css";
+import "./home.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import {
   NotificationContainer,
   NotificationManager,
@@ -10,6 +9,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import ClassIcon from "@mui/icons-material/Class";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
 function Home() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ function Home() {
 
   const getBookCategories = () => {
     try {
-      axios.get(`${api}/categories/get_all`, { headers }).then((res) => {
+      axios.get(`${api}/categories/get_all`).then((res) => {
         res?.data && setBookCategories(res.data);
       });
     } catch (err) {
@@ -49,7 +49,7 @@ function Home() {
   }, []);
 
   return (
-    <div className="welcome-page">
+    <div className="home-page">
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
         <div className="container-fluid">
           <label for="menu-control" class="hamburger">
@@ -111,7 +111,7 @@ function Home() {
               );
             })
           ) : (
-            <>Library out of service!</>
+            <div className="no-cat-home">Library out of service!</div>
           )}
         </div>
       </div>

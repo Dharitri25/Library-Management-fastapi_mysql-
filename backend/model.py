@@ -33,7 +33,9 @@ class Book(BaseModel):
 class BookIssueRecord(BaseModel):
     book_id: int
     user_id: int
-    issue_time: str
+    issued_by: int
+    issue_time: datetime =None
+    issue_status: str =Field(default="issued")
 
 class Author(BaseModel):
     name: str
@@ -41,11 +43,17 @@ class Author(BaseModel):
 class Publisher(BaseModel):
     name: str
 
-class BookIssue(BaseModel):
-    book_id: int
-    user_id: int
-    issued_by: int
-    issue_time: datetime =None
+# class BookIssue(BaseModel):
+#     book_id: int
+#     user_id: int
+#     issued_by: int
+#     issue_time: datetime =None
+#     issue_status: str
+
+class BookSearch(BaseModel):
+    title: str
+    author: str = None
+    publisher: str = None
 
 class Category(BaseModel):
     name: str
