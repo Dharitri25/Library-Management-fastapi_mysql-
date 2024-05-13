@@ -6,6 +6,8 @@ import Home from "./components/utils/Home";
 import BooksByCategory from "./components/utils/BooksByCategory";
 import UserHome from "./components/user/UserHome";
 import IssueBook from "./components/user/IssueBook";
+import UserInfo from "./components/user/UserInfo";
+import UserBookDetails from "./components/user/UserBookDetails";
 
 const App = () => {
   return (
@@ -29,6 +31,12 @@ const AppRoutes = () => {
         ></Route>
         <Route exact path="/user-home" element={<UserHome />}></Route>
         <Route exact path="/user/issue-book" element={<IssueBook />}></Route>
+        <Route exact path="/user-info" element={<UserInfo />}></Route>
+        <Route
+          exact
+          path="/user-books"
+          element={<UserBookDetails />}
+        ></Route>
       </Routes>
     </>
   );

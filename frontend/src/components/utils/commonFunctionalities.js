@@ -1,6 +1,7 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { NotificationManager } from "react-notifications";
+import { useNavigate } from "react-router-dom";
 
 const api = "http://127.0.0.1:8000";
 const token = localStorage.getItem("token");
@@ -9,14 +10,28 @@ const headers = {
 };
 
 // check for token active or not
-export const checkToken = async () => {
-  let decodedToken = jwtDecode(token);
+export const checkToken = () => {
+  let decodedToken = token && jwtDecode(token);
   let currentDate = new Date();
-  if (decodedToken.exp * 1000 < currentDate.getTime()) {
-    return false;
+
+  if (token) {
+    if (decodedToken?.exp * 1000 < currentDate.getTime()) {
+      return false;
+    } else {
+      return true;
+    }
   } else {
-    return true;
+    return false;
   }
 };
 
-
+export const handleLogout = async () => {
+  try {
+    await axios.post(`${api}/librarians/sign_out`).then((res) => {
+      NotificationManager.success("Librarian signed out sussessfully");
+      localStorage.clear();
+    });
+  } catch (err) {
+    NotificationManager.error(err);
+  }
+};

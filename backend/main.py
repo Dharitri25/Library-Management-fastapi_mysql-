@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from datetime import datetime
 import modelTables
-from model import UserBase, Librarian, Book, Category, Author, Publisher, BookIssueRecord, BookSearch, Token
+from model import UserBase, Librarian, Book, Category, Author, Publisher, BookIssueRequest, BookIssueRecord, BookSearch, Token
 
 # app instance
 app = FastAPI(title="Library Management System")
@@ -190,10 +190,8 @@ async def get_librarian_by_id(librarian_id : str, db: db_dependency, current_lib
 
 # sign out
 @app.post("/librarians/sign_out", status_code=status.HTTP_200_OK, tags=["auth-librarian"])
-async def sign_out(db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
-    if not current_librarian:
-        raise HTTPException(401, detail="You are not authenticated")
-    
+async def sign_out(db:db_dependency):
+    current_librarian = db.query(modelTables.Librarian).filter(modelTables.Librarian.active == True).first()
     db.query(modelTables.Librarian).filter(modelTables.Librarian.librarian_name == current_librarian.librarian_name).update({"active": False})
     db.commit()
     return {"message":"Librarian logged out successfully"}
@@ -440,10 +438,7 @@ async def get_all_categories(db: db_dependency):
 
 # get category by id
 @app.get("/categories/get_by_id={category_id}", status_code=status.HTTP_200_OK, tags=["category"])
-async def get_category_by_id(category_id: str, db: db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
-    if not current_librarian:
-        raise HTTPException(401, detail="You are not authenticated")
-    
+async def get_category_by_id(category_id: str, db: db_dependency):
     category = db.query(modelTables.Category).filter(modelTables.Category.id == category_id).first()
     if category_id is None:
         raise HTTPException(status_code=404, detail="category not found!")
@@ -511,10 +506,7 @@ async def get_all_authors(db: db_dependency):
 
 # get author by id
 @app.get("/authors/get_by_id={author_id}", status_code=status.HTTP_200_OK, tags=["author"])
-async def get_author_by_id(author_id: str, db: db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
-    if not current_librarian:
-        raise HTTPException(401, detail="You are not authenticated")
-    
+async def get_author_by_id(author_id: str, db: db_dependency):
     author = db.query(modelTables.Author).filter(modelTables.Author.id == author_id).first()
     if author_id is None:
         raise HTTPException(status_code=404, detail="author not found!")
@@ -644,42 +636,51 @@ async def get_bookeIssue_details(i, db:db_dependency):
 
 # post issue details
 @app.post("/bookIssues/", status_code=status.HTTP_200_OK, tags=["bookIssue"])
-async def create_bookIssue_record(bookIssue: BookIssueRecord, db:db_dependency):
+async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_dependency):
     current_librarian = db.query(modelTables.Librarian).filter(modelTables.Librarian.active == True).first()
 
-    checkBookID = db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).first()
-    checkUserID = db.query(modelTables.User).filter(modelTables.User.id == bookIssue.user_id).first()
+    checkBookID = db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).first()
+    checkUserID = db.query(modelTables.User).filter(modelTables.User.id == book_issue_request.user_id).first()
+
     if checkBookID is None:
         raise HTTPException(status_code=404, detail="Book for issue not found!")
     elif checkBookID.copies == 0:
-        raise HTTPException(status_code=400, detail="this book is not available to issue!")
-        
+        raise HTTPException(status_code=400, detail="This book is not available to issue!")
+
     if checkUserID is None:
         raise HTTPException(status_code=404, detail="User for issue not found!")
-    elif checkUserID.has_issued == True:
+    elif checkUserID.has_issued:
         raise HTTPException(status_code=400, detail="User is not valid to issue book!")
-    
-    bookIssue.issue_time = datetime.now()
-    
-    if current_librarian:         
-        bookIssue.issued_by = current_librarian.librarian_id
-        db_bookIssue = modelTables.BookIssueRecord(**bookIssue.model_dump())
-        db.add(db_bookIssue)
 
-        if bookIssue.issue_status == "issued":
-            db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).update({"copies": modelTables.Book.copies - 1})
-            db.query(modelTables.User).filter(modelTables.User.id == bookIssue.user_id).update({"has_issued": True})
-    
-    elif not current_librarian:
-        bookIssue.issued_by = None
-        db_bookIssue = modelTables.BookIssueRecord(**bookIssue.model_dump())
-        db.add(db_bookIssue)
+    issue_time = datetime.now()
 
+    if current_librarian:
+        issued_by = current_librarian.librarian_id
+        issue_status = "issued"
+    else:
+        issued_by = None
+        issue_status = "pending"
+
+    db_book_issue = modelTables.BookIssueRecord(
+        book_id= book_issue_request.book_id,
+        user_id= book_issue_request.user_id,
+        issued_by= issued_by,
+        issue_time= issue_time,
+        issue_status= issue_status
+    )
+    db.add(db_book_issue)
     db.commit()
-    
+
+    if issue_status == "issued":
+        db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).update(
+            {"copies": modelTables.Book.copies - 1}
+        )
+        db.query(modelTables.User).filter(modelTables.User.id == book_issue_request.user_id).update(
+            {"has_issued": True}
+        )
+
     latest_issue_details = db.query(modelTables.BookIssueRecord).order_by(modelTables.BookIssueRecord.id.desc()).first()
     return latest_issue_details
-
 
 # get all book issues
 @app.get("/bookIssues/get_all", status_code=status.HTTP_200_OK, tags=["bookIssue"])
@@ -745,14 +746,12 @@ async def get_book_by_title(title:str, db:db_dependency):
 # search book by author
 @app.get("/bookSearch/get_book_by_author={author}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
 async def get_book_by_author(author:str, db:db_dependency):
-    all_authors = await get_all_authors(db)
-    all_books = await get_all_books(db)
+    all_books = await get_books_details(db)
     search_books = []
-    for i in all_authors:
-        if author.lower() in i.name.lower():
-            for j in all_books:
-                if i.id == j.author:
-                    search_books.append(j)
+    for book in all_books:
+        if author.lower() in book["author"].lower():
+            search_books.append(book)
+
     return search_books
 
 
@@ -792,23 +791,6 @@ async def get_book_by_title_author_publisher(db:db_dependency, title:str, author
 
     return searched_books
 
-# search by both ttile and author and publisher
-# @app.get("/bookSearch/get_book_by_title={title}_author={author}_publisher={publisher}", status_code= status.HTTP_200_OK, tags=["bookSearch"])
-# async def get_book_by_title_author_publisher( db:db_dependency, title:str, author: str| None = None, publisher: str| None = None):
-#     all_books = await get_books_details(db)
-
-#     searched_books = []
-#     if title and author == "" and publisher == "":
-#         searched_books = await get_book_by_title(title, db)
-#     elif title and author and publisher == "":
-#         searched_books = await get_books_by_title_and_author(title, author, db)
-#     else:
-#         for book in all_books:
-#             if title.lower() in book["title"].lower() and author.lower() in book["name"].lower() and publisher.lower() in book["publisher"].lower():
-#                 searched_books.append(book)
-
-#     return searched_books
-
 
 # search by title or author or publisher
 @app.get("/bookSearch/get_searched_Books/search={search}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
@@ -829,13 +811,12 @@ async def get_books_by_category(cat_id: int, db:db_dependency):
     if checkCategory is None:
         raise HTTPException(status_code=404, detail="Cateogy not found!")
     
-    all_books = db.query(modelTables.Book).all()
+    all_books = await get_books_details(db)
     searched_books = []
 
     for book in all_books:
-        if book.category == cat_id:
-            book_obj = await get_book_details(book, db)
-            searched_books.append(book_obj)
+        if book["category"] == checkCategory.name:
+            searched_books.append(book)
 
     return searched_books
 

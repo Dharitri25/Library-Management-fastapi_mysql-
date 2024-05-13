@@ -5,14 +5,14 @@ import axios from "axios";
 import { NotificationManager } from "react-notifications";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
-function BookDetails({ book }) {
+function BookDetails({ book, setOpenIssueBook }) {
   const navigate = useNavigate();
   const api = "http://127.0.0.1:8000";
   const [username, setUsername] = useState("");
   const [bookDetails, setBookDetails] = useState({});
 
   const getBookDetails = () => {
-    if (book) {
+    if (book && book !== "myModal") {
       try {
         axios.get(`${api}/books/get_book_by_id=${book}`).then((res) => {
           res?.data && setBookDetails(res.data);
@@ -23,24 +23,62 @@ function BookDetails({ book }) {
     }
   };
 
-  useEffect(() => {
-    const myModal = document.getElementById("myModal");
-    const myInput = document.getElementById("myInput");
-
-    if (myModal) {
-      myModal.addEventListener("shown.bs.modal", () => {
-        myInput.focus();
-      });
+  const getUserByUsername = async () => {
+    if (username !== "") {
+      let userRes = await axios.get(
+        `${api}/users/check_user_in_db=${username}`
+      );
+      return userRes?.data;
     }
+  };
 
-    return () => {
-      if (myModal) {
-        myModal.removeEventListener("shown.bs.modal", () => {
-          myInput.focus();
-        });
-      }
+  const handleIssueBook = async () => {
+    let userId = await getUserByUsername();
+    let bookIssueDetails = {
+      book_id: bookDetails?.id,
+      user_id: userId,
     };
-  }, []);
+
+    try {
+      await axios.post(`${api}/bookIssues/`, bookIssueDetails).then((res) => {
+        console.log(res);
+        setOpenIssueBook("");
+        NotificationManager.success("Book issued proceeded successfully");
+      });
+    } catch (err) {
+      NotificationManager.error(err);
+    }
+  };
+
+  useEffect(() => {
+    const myModal = document.querySelector(".details-modal");
+    const myInput = document.querySelector(".details-modal-close");
+
+    if (myModal && myInput && bookDetails) {
+      setOpenIssueBook("myModal");
+
+      const closeModal = () => {
+        setOpenIssueBook("");
+      };
+
+      myInput.addEventListener("click", closeModal);
+
+      myModal.addEventListener("click", (event) => {
+        if (
+          event.target === myModal.querySelector(".details-modal-content") ||
+          event.target.closest(".details-modal-content")
+        ) {
+          return;
+        }
+        closeModal();
+      });
+
+      return () => {
+        myInput.removeEventListener("click", closeModal);
+        myModal.removeEventListener("click", closeModal);
+      };
+    }
+  }, [bookDetails, setOpenIssueBook]);
 
   useEffect(() => {
     getBookDetails();
@@ -48,9 +86,18 @@ function BookDetails({ book }) {
 
   return (
     <div>
-      <div class="details-modal-overlay"></div>
-      <div class="details-modal">
-        <div class="details-modal-close">
+      <div
+        className="details-modal-overlay"
+        onClick={() => setOpenIssueBook("")}
+      ></div>
+      <div className="details-modal">
+        <div className="details-modal-title">
+          <h1>Issue Book Here</h1>
+        </div>
+        <div
+          className="details-modal-close"
+          onClick={() => setOpenIssueBook("")}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -59,28 +106,27 @@ function BookDetails({ book }) {
             fill="none"
           >
             <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
+              fillRule="evenodd"
+              clipRule="evenodd"
               d="M13.7071 1.70711C14.0976 1.31658 14.0976 0.683417 13.7071 0.292893C13.3166 -0.0976311 12.6834 -0.0976311 12.2929 0.292893L7 5.58579L1.70711 0.292893C1.31658 -0.0976311 0.683417 -0.0976311 0.292893 0.292893C-0.0976311 0.683417 -0.0976311 1.31658 0.292893 1.70711L5.58579 7L0.292893 12.2929C-0.0976311 12.6834 -0.0976311 13.3166 0.292893 13.7071C0.683417 14.0976 1.31658 14.0976 1.70711 13.7071L7 8.41421L12.2929 13.7071C12.6834 14.0976 13.3166 14.0976 13.7071 13.7071C14.0976 13.3166 14.0976 12.6834 13.7071 12.2929L8.41421 7L13.7071 1.70711Z"
               fill="black"
             />
           </svg>
         </div>
-        <div class="details-modal-title">
-          <h1>Issue Book Here</h1>
-        </div>
-        <div class="details-modal-content">
+        <div className="details-modal-content">
           <div>
-            <div class="card">
-              <div class="card-body">
+            <div className="card">
+              <div className="card-body">
                 <div className="book-title">
                   <AutoStoriesIcon />
-                  <h5 class="card-title">{bookDetails?.title}</h5>
+                  <h5 className="card-title">{bookDetails?.title}</h5>
                 </div>
-                <h6 class="card-subtitle mb-2 text-body-secondary">
+                <h6 className="card-subtitle mb-2 text-body-secondary">
                   by {bookDetails?.author}
                 </h6>
-                <p class="card-text">published by: {bookDetails?.publisher}</p>
+                <p className="card-text">
+                  published by: {bookDetails?.publisher}
+                </p>
                 <span>total copies available: {bookDetails?.copies}</span>
               </div>
             </div>
@@ -97,14 +143,14 @@ function BookDetails({ book }) {
             <div className="issue-bbok-button-div">
               <input
                 type="button"
-                value="clear form"
+                value="Issue"
                 disabled={username === ""}
-                // onClick={() => handleClearForm()}
+                onClick={() => handleIssueBook()}
               />
               <input
                 type="button"
                 value="Back"
-                onClick={() => navigate("/user/issue-book")}
+                onClick={() => setOpenIssueBook("")}
               />
             </div>
           </div>

@@ -10,6 +10,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClassIcon from "@mui/icons-material/Class";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
+import { checkToken, handleLogout } from "./commonFunctionalities";
 
 function Home() {
   const navigate = useNavigate();
@@ -20,19 +21,6 @@ function Home() {
   };
 
   const [bookCategories, setBookCategories] = useState([]);
-
-  const handleLogout = async () => {
-    try {
-      await axios
-        .post(`${api}/librarians/sign_out`, { headers })
-        .then((res) => {
-          NotificationManager.success("Librarian signed out sussessfully");
-          navigate("/");
-        });
-    } catch (err) {
-      NotificationManager.error(err);
-    }
-  };
 
   const getBookCategories = () => {
     try {
@@ -52,7 +40,7 @@ function Home() {
     <div className="home-page">
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
         <div className="container-fluid">
-          <label for="menu-control" class="hamburger">
+          <label htmlFor="menu-control" className="hamburger">
             <MenuOpenIcon />
           </label>
           <div className="welcome_logo">
@@ -69,8 +57,19 @@ function Home() {
                 <SearchIcon className="input-box-icon" />
               </div>
               <li className="nav-item">
-                <button className="nav-button" onClick={() => handleLogout()}>
+                <button
+                  className="nav-button"
+                  onClick={() => {
+                    handleLogout().then(() => {
+                      checkToken();
+                      navigate("/");
+                    });
+                  }}
+                >
                   Logout
+                </button>
+                <button className="nav-button" onClick={() => navigate("/")}>
+                  Back
                 </button>
               </li>
             </ul>
@@ -79,16 +78,16 @@ function Home() {
       </nav>
       <NotificationContainer />
       <div>
-        <input type="checkbox" id="menu-control" class="menu-control" />
-        <aside class="sidebar">
-          <nav class="sidebar__menu">
+        <input type="checkbox" id="menu-control" className="menu-control" />
+        <aside className="sidebar">
+          <nav className="sidebar__menu">
             <a href="/">Home</a>
             <a href="/">About us</a>
             <a href="/">Services</a>
             <a href="/">Products</a>
             <a href="/">Contact</a>
           </nav>
-          <label for="menu-control" class="sidebar__close"></label>
+          <label htmlFor="menu-control" className="sidebar__close"></label>
         </aside>
       </div>
       <div>

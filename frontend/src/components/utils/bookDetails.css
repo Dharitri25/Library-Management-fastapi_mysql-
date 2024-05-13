@@ -3,7 +3,7 @@
   box-shadow: 0 10px 20px rgba(black, 0.2);
   left: 50%;
   max-width: 90%;
-  pointer-events: none;
+  pointer-events: all;
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);

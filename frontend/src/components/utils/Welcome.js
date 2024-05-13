@@ -2,21 +2,23 @@ import React, { useEffect, useState } from "react";
 import "./welcome.css";
 import { useNavigate } from "react-router-dom";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
-import { checkToken } from "./commonFunctionalities";
+import { checkToken, handleLogout } from "./commonFunctionalities";
 
 function Welcome() {
   const navigate = useNavigate();
-  const [isToken, setIsToken] = useState(false);
-  let token = localStorage.getItem("token");
+  const [isToken, setIsToken] = useState(checkToken());
 
   useEffect(() => {
-    const checkISToken = async () => {
-      let tokenIsActive = await checkToken();
-      setIsToken(tokenIsActive);
+    const handleTokenChange = () => {
+      setIsToken(checkToken());
     };
 
-    checkISToken();
-  }, [token]);
+    window.addEventListener("storage", handleTokenChange);
+
+    return () => {
+      window.removeEventListener("storage", handleTokenChange);
+    };
+  }, []);
 
   return (
     <div className="welcome-page">
@@ -35,17 +37,50 @@ function Welcome() {
                 <span
                   className="nav-link"
                   aria-current="page"
-                  onClick={() =>
-                    isToken ? navigate("/home") : navigate("/user-home")
-                  }
+                  onClick={() => navigate("/user-info")}
+                >
+                  User Info
+                </span>
+              </li>
+              <li className="nav-item">
+                <span
+                  className="nav-link"
+                  aria-current="page"
+                  onClick={() => navigate("/user-home")}
                 >
                   Check out Books
                 </span>
               </li>
+              <>{console.log({ isToken })}</>
+              {isToken && (
+                <li className="nav-item">
+                  <span
+                    className="nav-link"
+                    aria-current="page"
+                    onClick={() => navigate("/home")}
+                  >
+                    For Librarian
+                  </span>
+                </li>
+              )}
               <li className="nav-item">
-                <span className="nav-link" onClick={() => navigate("/login")}>
-                  Login
-                </span>
+                {isToken ? (
+                  <span
+                    className="nav-link"
+                    onClick={() => {
+                      handleLogout().then(() => {
+                        let tokenIsActive = checkToken();
+                        setIsToken(tokenIsActive);
+                      });
+                    }}
+                  >
+                    Logout
+                  </span>
+                ) : (
+                  <span className="nav-link" onClick={() => navigate("/login")}>
+                    Login
+                  </span>
+                )}
               </li>
             </ul>
           </div>

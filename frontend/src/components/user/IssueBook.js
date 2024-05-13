@@ -89,28 +89,6 @@ function IssueBook() {
     }
   };
 
-  const checkNewUser = async () => {
-    if (issueDetails.username !== "") {
-      try {
-        await axios
-          .get(`${api}/users/check_user_in_db=${issueDetails.username}`)
-          .then((res) => {
-            res?.data && setUserId(res.data);
-          });
-      } catch (err) {
-        NotificationManager.error(err);
-      }
-    }
-  };
-
-  const handleIssueBook = async () => {
-    let isToken = await checkToken();
-    if (issueDetails.username !== "" && isToken) {
-      if (userId === 0) {
-      }
-    }
-  };
-
   const handleClearForm = () => {
     const clearIssueDetails = {
       title: "",
@@ -121,12 +99,6 @@ function IssueBook() {
     setIssueDetails(clearIssueDetails);
     setSearchedBooks([]);
   };
-
-  useEffect(() => {
-    if (issueDetails.username !== "") {
-      checkNewUser();
-    }
-  }, [issueDetails?.username]);
 
   useEffect(() => {
     getBooksToShow();
@@ -233,7 +205,7 @@ function IssueBook() {
           {!searchedBooks && <h4>Enter details to see book availability</h4>}
         </div>
       </div>
-      {openIssueBook && <BookDetails book={openIssueBook} />}
+      {openIssueBook && <BookDetails book={openIssueBook} setOpenIssueBook={setOpenIssueBook}/>}
     </div>
   );
 }

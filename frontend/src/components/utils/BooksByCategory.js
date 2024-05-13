@@ -40,13 +40,12 @@ function BooksByCategory() {
     console.log({ search, categoryId });
     if (search !== "" && search.length > 1 && categoryId) {
       try {
-        await axios(
-          `${api}/books/get_books_by_category=${categoryId}/search=${search}`,
-          { headers }
-        ).then((res) => {
-          console.log({ res });
-          res?.data && setBookByCategory(res.data);
-        });
+        await axios(`${api}/books/get_books_by_category=${categoryId}`).then(
+          (res) => {
+            console.log({ res });
+            res?.data && setBookByCategory(res.data);
+          }
+        );
       } catch (err) {
         NotificationManager.error(err);
       }

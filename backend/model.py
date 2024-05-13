@@ -37,18 +37,15 @@ class BookIssueRecord(BaseModel):
     issue_time: datetime =None
     issue_status: str =Field(default="issued")
 
+class BookIssueRequest(BaseModel):
+    book_id: int
+    user_id: int
+
 class Author(BaseModel):
     name: str
 
 class Publisher(BaseModel):
     name: str
-
-# class BookIssue(BaseModel):
-#     book_id: int
-#     user_id: int
-#     issued_by: int
-#     issue_time: datetime =None
-#     issue_status: str
 
 class BookSearch(BaseModel):
     title: str

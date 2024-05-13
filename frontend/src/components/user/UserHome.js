@@ -95,6 +95,9 @@ function UserHome() {
                   >
                     Issue Book
                   </button>
+                  <button className="nav-button" onClick={() => navigate("/")}>
+                    Back
+                  </button>
                 </li>
               </ul>
             </div>
