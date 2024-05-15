@@ -30,6 +30,13 @@ class Book(BaseModel):
     category: int
     copies : int  = Field(default=1)
 
+class BookRequest(BaseModel):
+    title : str
+    author : str
+    publisher : str
+    category: str
+    copies : int = Field(default=1)
+
 class BookIssueRecord(BaseModel):
     book_id: int
     user_id: int

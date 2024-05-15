@@ -3,7 +3,6 @@ import axios from "axios";
 import "./booksByCategory.css";
 import {
   NotificationManager,
-  NotificationContainer,
 } from "react-notifications";
 import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
@@ -37,12 +36,10 @@ function BooksByCategory() {
   };
 
   const handleSearchBook = async (search, categoryId) => {
-    console.log({ search, categoryId });
     if (search !== "" && search.length > 1 && categoryId) {
       try {
         await axios(`${api}/books/get_books_by_category=${categoryId}`).then(
           (res) => {
-            console.log({ res });
             res?.data && setBookByCategory(res.data);
           }
         );
@@ -58,6 +55,7 @@ function BooksByCategory() {
     if (category) {
       getBooksByCategory(category);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
   return (

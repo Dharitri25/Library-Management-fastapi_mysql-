@@ -8,16 +8,13 @@ import {
   NotificationContainer,
   NotificationManager,
 } from "react-notifications";
-import { checkToken } from "../utils/commonFunctionalities";
 import BookDetails from "../utils/BookDetails";
 
 function IssueBook() {
   const navigate = useNavigate();
   const api = "http://127.0.0.1:8000";
 
-  const [userId, setUserId] = useState(0);
   const [searchedBooks, setSearchedBooks] = useState([]);
-  const [openUserRegister, setOpenUserRegister] = useState(false);
   const [openIssueBook, setOpenIssueBook] = useState("");
   const [issueDetails, setIssueDetails] = useState({
     title: "",

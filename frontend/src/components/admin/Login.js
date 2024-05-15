@@ -11,6 +11,7 @@ function Login() {
   const navigate = useNavigate();
   const api = "http://127.0.0.1:8000";
   const [isSignUp, SetIsSignUp] = useState(false);
+  const [password, setPassword] = useState("");
   const [loginInfo, setLoginInfo] = useState({
     username: "",
     password: "",
@@ -25,6 +26,7 @@ function Login() {
         localStorage.setItem("token", res?.data?.access_token);
         NotificationManager.success("Librarian signed in sussessfully");
         navigate("/home");
+        // window.location.reload();
       });
     } catch (err) {
       NotificationManager.error("Error in user sign in process!");
@@ -32,18 +34,23 @@ function Login() {
   };
 
   const handleSignUp = async () => {
-    const formData = new FormData();
-    formData.append("username", loginInfo.username);
-    formData.append("password", loginInfo.password);
+    if (password !== loginInfo.password) {
+      NotificationManager.error("Please re-enter password and confirm!");
+    } else {
+      const formData = new FormData();
+      formData.append("username", loginInfo.username);
+      formData.append("password", loginInfo.password);
 
-    try {
-      await axios.post(`${api}/librarians/sign_up`, formData).then((res) => {
-        localStorage.setItem("token", res?.data?.access_token);
-        NotificationManager.success("Librarian signed up sussessfully");
-        navigate("/home");
-      });
-    } catch (err) {
-      NotificationManager.error("Error in sign up process!");
+      try {
+        await axios.post(`${api}/librarians/sign_up`, formData).then((res) => {
+          localStorage.setItem("token", res?.data?.access_token);
+          window.location.reload();
+          NotificationManager.success("Librarian signed up sussessfully");
+          navigate("/home");
+        });
+      } catch (err) {
+        NotificationManager.error("Error in sign up process!");
+      }
     }
   };
 
@@ -82,12 +89,26 @@ function Login() {
                 type="password"
                 placeholder="Password"
                 className="input-2"
-                value={loginInfo.password}
-                onChange={(e) =>
-                  setLoginInfo({ ...loginInfo, password: e.target.value })
-                }
+                value={isSignUp ? password : loginInfo.password}
+                onChange={(e) => {
+                  isSignUp
+                    ? setPassword(e.target.value)
+                    : setLoginInfo({ ...loginInfo, password: e.target.value });
+                }}
                 required
               />
+              {isSignUp && (
+                <input
+                  type="password"
+                  placeholder="Re-Enter Password"
+                  className="input-2"
+                  value={loginInfo.password}
+                  onChange={(e) =>
+                    setLoginInfo({ ...loginInfo, password: e.target.value })
+                  }
+                  required
+                />
+              )}
             </div>
             {isSignUp ? (
               <input

@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import "./bookDetails.css";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import "./bookDetails.css";
+import { checkUser } from "./commonFunctionalities";
 import { NotificationManager } from "react-notifications";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
 function BookDetails({ book, setOpenIssueBook }) {
-  const navigate = useNavigate();
   const api = "http://127.0.0.1:8000";
   const [username, setUsername] = useState("");
   const [bookDetails, setBookDetails] = useState({});
@@ -23,17 +22,8 @@ function BookDetails({ book, setOpenIssueBook }) {
     }
   };
 
-  const getUserByUsername = async () => {
-    if (username !== "") {
-      let userRes = await axios.get(
-        `${api}/users/check_user_in_db=${username}`
-      );
-      return userRes?.data;
-    }
-  };
-
   const handleIssueBook = async () => {
-    let userId = await getUserByUsername();
+    let userId = username !== "" && (await checkUser(username));
     let bookIssueDetails = {
       book_id: bookDetails?.id,
       user_id: userId,
@@ -41,7 +31,6 @@ function BookDetails({ book, setOpenIssueBook }) {
 
     try {
       await axios.post(`${api}/bookIssues/`, bookIssueDetails).then((res) => {
-        console.log(res);
         setOpenIssueBook("");
         NotificationManager.success("Book issued proceeded successfully");
       });
@@ -82,6 +71,7 @@ function BookDetails({ book, setOpenIssueBook }) {
 
   useEffect(() => {
     getBookDetails();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
 
   return (

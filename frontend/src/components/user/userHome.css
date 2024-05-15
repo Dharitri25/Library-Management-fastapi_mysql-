@@ -279,3 +279,19 @@ h2 {
   background: #c1c1c194;
   color: #333333a6;
 }
+
+/* user tab in librarian home */
+.book-tab-div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 35px;
+  margin: 10px;
+}
+
+.book-add-button {
+  display: inline-flex;
+  gap: 65px;
+  justify-content: center;
+  margin-block-start: 10px;
+}

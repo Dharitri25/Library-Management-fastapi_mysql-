@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./userHome.css";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import {
   NotificationContainer,
   NotificationManager,
 } from "react-notifications";
-import SearchIcon from "@mui/icons-material/Search";
 import ClassIcon from "@mui/icons-material/Class";
+import SearchIcon from "@mui/icons-material/Search";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
 function UserHome() {
   const navigate = useNavigate();
   const api = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
 
   const [bookCategories, setBookCategories] = useState([]);
   const [books, setBooks] = useState([]);
@@ -47,7 +43,6 @@ function UserHome() {
         await axios
           .get(`${api}/bookSearch/get_searched_Books/search=${search}`)
           .then((res) => {
-            console.log({ res });
             res.data && setBooks(res.data);
           });
       } catch (err) {
@@ -68,9 +63,6 @@ function UserHome() {
       <div className="user-home">
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
           <div className="container-fluid">
-            {/* <label for="menu-control" className="hamburger">
-              <MenuOpenIcon />
-            </label> */}
             <div className="header_logo">
               <AutoStoriesIcon />
               <span>Library</span>
@@ -83,6 +75,7 @@ function UserHome() {
                 <div className="input-box">
                   <input
                     type="text"
+                    placeholder="Search book here"
                     className="form-control"
                     onChange={(e) => getSearchedBooks(e.target.value)}
                   />
@@ -142,28 +135,30 @@ function UserHome() {
               </table>
             </div>
           </div>
-          <h2>Book Categories</h2>
-          <div className="cat-container">
-            {bookCategories?.length > 0 ? (
-              bookCategories.map((cat) => {
-                return (
-                  <div
-                    key={cat?.id}
-                    className="items"
-                    onClick={() => navigate(`/books_by_category/${cat?.id}`)}
-                  >
-                    <div className="icon-wrapper">
-                      <ClassIcon className="category" />
+          <div style={{ marginTop: "5%" }}>
+            <h2>Book Categories</h2>
+            <div className="cat-container">
+              {bookCategories?.length > 0 ? (
+                bookCategories.map((cat) => {
+                  return (
+                    <div
+                      key={cat?.id}
+                      className="items"
+                      onClick={() => navigate(`/books_by_category/${cat?.id}`)}
+                    >
+                      <div className="icon-wrapper">
+                        <ClassIcon className="category" />
+                      </div>
+                      <div className="project-name">
+                        <p>{cat?.name}</p>
+                      </div>
                     </div>
-                    <div className="project-name">
-                      <p>{cat?.name}</p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="no-cat-home">Library out of service!</div>
-            )}
+                  );
+                })
+              ) : (
+                <div className="no-cat-home">Library out of service!</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

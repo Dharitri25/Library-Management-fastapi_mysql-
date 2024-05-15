@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
 import "./welcome.css";
 import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import { checkToken, handleLogout } from "./commonFunctionalities";
 
@@ -11,6 +11,7 @@ function Welcome() {
   useEffect(() => {
     const handleTokenChange = () => {
       setIsToken(checkToken());
+      window.location.reload();
     };
 
     window.addEventListener("storage", handleTokenChange);
@@ -51,7 +52,6 @@ function Welcome() {
                   Check out Books
                 </span>
               </li>
-              <>{console.log({ isToken })}</>
               {isToken && (
                 <li className="nav-item">
                   <span
@@ -71,6 +71,7 @@ function Welcome() {
                       handleLogout().then(() => {
                         let tokenIsActive = checkToken();
                         setIsToken(tokenIsActive);
+                        window.location.reload();
                       });
                     }}
                   >

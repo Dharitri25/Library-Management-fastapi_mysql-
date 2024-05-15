@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from datetime import datetime
 import modelTables
-from model import UserBase, Librarian, Book, Category, Author, Publisher, BookIssueRequest, BookIssueRecord, BookSearch, Token
+from model import UserBase, Librarian, Book, BookRequest, Category, Author, Publisher, BookIssueRequest, BookIssueRecord, BookSearch, Token
 
 # app instance
 app = FastAPI(title="Library Management System")
@@ -30,7 +30,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 # JWT Configuration
 SECRET_KEY = "9a8d3f94e2c1b0a7f6e5d4c3b2a19081"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 180
+ACCESS_TOKEN_EXPIRE_MINUTES = 360
 
 # variables for authentication
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -322,15 +322,55 @@ async def get_details(book, db:db_dependency):
 
 # post book
 @app.post("/books/", status_code=status.HTTP_200_OK, tags=["book"])
-async def add_book(book: Book, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):    
+async def add_book(book: BookRequest, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):    
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
 
     checkBook = db.query(modelTables.Book).filter(modelTables.Book.title == book.title).first()
     if checkBook is not None:
-        db.query(modelTables.Book).filter(modelTables.Book.title == book.title).update({"copies": modelTables.Book.copies + book.copies})
+        book_copies = db.query(modelTables.Book).filter(modelTables.Book.title == book.title).first().copies
+        db.query(modelTables.Book).filter(modelTables.Book.title == book.title).update({"copies": book_copies + book.copies})
     else:
-        db_book = modelTables.Book(**book.model_dump()) #if author & publisher not available, add them in respective tables
+        book_author = db.query(modelTables.Author).filter(modelTables.Author.name == book.author).first()
+        book_publisher = db.query(modelTables.Publisher).filter(modelTables.Publisher.name == book.publisher).first()
+        book_category = db.query(modelTables.Category).filter(modelTables.Category.name == book.category).first()
+
+        #if author & publisher not available, add them in respective tables
+        if book_author is None:
+            db_author = modelTables.Author(
+                name = book.author
+            )
+            db.add(db_author)
+            db.commit()
+            new_author = db.query(modelTables.Author).order_by(modelTables.Author.id.desc()).first()
+            book_author = new_author
+
+        if book_publisher is None:
+            db_publisher = modelTables.Publisher(
+                name = book.publisher
+            )
+            db.add(db_publisher)
+            db.commit()
+            new_publisher = db.query(modelTables.Publisher).order_by(modelTables.Publisher.id.desc()).first()
+            book_publisher = new_publisher
+
+        if book_category is None:
+            db_category = modelTables.Category(
+                name = book.category
+            )
+            db.add(db_category)
+            db.commit()
+            new_category = db.query(modelTables.Category).order_by(modelTables.Category.id.desc()).first()
+            book_category = new_category
+
+        # add new book to db
+        db_book = modelTables.Book(
+            title = book.title,
+            author = book_author.id,
+            publisher = book_publisher.id,
+            category = book_category.id,
+            copies = book.copies
+        )
         db.add(db_book)
     db.commit()
 
@@ -418,6 +458,10 @@ async def create_category(category: Category, db: db_dependency, current_librari
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
     
+    check_category = db.query(modelTables.Category).filter(modelTables.Category.name == category.name).first()
+    if check_category is not None:
+        raise HTTPException(status_code=404, detail="category already exists")
+    
     db_category = modelTables.Category(**category.model_dump())
     db.add(db_category)
     db.commit()
@@ -487,6 +531,10 @@ async def add_author(author: Author, db: db_dependency, current_librarian: Libra
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
     
+    check_author = db.query(modelTables.Author).filter(modelTables.Author.name == author.name).first()
+    if check_author is not None:
+        raise HTTPException(status_code=404, detail="Author already exists")
+
     db_author = modelTables.Author(**author.model_dump())
     db.add(db_author)
     db.commit()
@@ -554,6 +602,10 @@ async def delete_author(author_id: str, db:db_dependency, current_librarian: Lib
 async def add_publisher(publisher: Publisher, db: db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
+    
+    check_publisher = db.query(modelTables.Publisher).filter(modelTables.Publisher.name == publisher.name).first()
+    if check_publisher is not None:
+        raise HTTPException(status_code=404, detail="Publisher already exists")
     
     db_publisher = modelTables.Publisher(**publisher.model_dump())
     db.add(db_publisher)
@@ -630,9 +682,13 @@ async def get_bookeIssue_details(i, db:db_dependency):
     issue_details = {
             "id": i.id,
             "bookname": bookname,
-            "username": username
+            "username": username,
+            "issued_by": i.issued_by,
+            "issue_time": i.issue_time,
+            "issue_status": i.issue_status,
         }
     return issue_details
+
 
 # post issue details
 @app.post("/bookIssues/", status_code=status.HTTP_200_OK, tags=["bookIssue"])
@@ -672,8 +728,9 @@ async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_d
     db.commit()
 
     if issue_status == "issued":
+        book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).first().copies
         db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).update(
-            {"copies": modelTables.Book.copies - 1}
+            {"copies": book_copies - 1}
         )
         db.query(modelTables.User).filter(modelTables.User.id == book_issue_request.user_id).update(
             {"has_issued": True}
@@ -682,12 +739,10 @@ async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_d
     latest_issue_details = db.query(modelTables.BookIssueRecord).order_by(modelTables.BookIssueRecord.id.desc()).first()
     return latest_issue_details
 
+
 # get all book issues
 @app.get("/bookIssues/get_all", status_code=status.HTTP_200_OK, tags=["bookIssue"])
-async def get_all_bookIssued_details(db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
-    if not current_librarian:
-        raise HTTPException(401, detail="You are not authenticated")
-    
+async def get_all_bookIssued_details(db:db_dependency):    
     all_bookIssued = await get_all_bookeIssues(db)
 
     all_bookIssues_details = []
@@ -711,18 +766,53 @@ async def get_bookIssue_by_id(bookIssue_id:str, db:db_dependency, current_librar
     return bookIssue_details
 
 
-# book return process   # delete bookIssues by id
-@app.delete("/bookIssues/delete_bookIssue={bookIssue_id}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
-async def delete_bookIssue_by_id(bookIssue_id: str, db: db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
-    if not current_librarian:
+# get book issue details user wise
+@app.get("/get_bookIssues_by_user={userId}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
+async def get_bookIssues_by_user(userId: int, db:db_dependency):
+    check_user = db.query(modelTables.User).filter(modelTables.User.id == userId).first()
+    if check_user is None:
+        raise HTTPException(status_code=404, detail="User not exists in db!")
+    all_bookeIssues = await get_all_bookIssued_details(db)
+    bookIssuesByUser = []
+
+    for book in all_bookeIssues:
+        if book["username"] == check_user.username:
+            bookIssuesByUser.append(book)
+
+    return bookIssuesByUser
+
+
+# update book issue process
+@app.put("/update_bookIssue={bookIssue_id}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
+async def update_bookIssue(bookIssue_id: int, db:db_dependency):
+    current_librarian_id = db.query(modelTables.Librarian).filter(modelTables.Librarian.active == True).first().librarian_id
+    if not current_librarian_id:
         raise HTTPException(401, detail="You are not authenticated")
     
+    check_bookIssue_record = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).first()
+    if check_bookIssue_record is None:
+        raise HTTPException(status_code=404, detail="No book issue record!")
+    
+    if check_bookIssue_record.issue_status == "pending":
+        db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).update({"issue_status": "issued", "issued_by": current_librarian_id})
+        db.query(modelTables.User).filter(modelTables.User.id == check_bookIssue_record.user_id).update({"has_issued": True})
+        book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == check_bookIssue_record.book_id).first().copies
+        db.query(modelTables.Book).filter(modelTables.Book.id == check_bookIssue_record.book_id).update({"copies": book_copies - 1})
+        db.commit()
+    latest_record = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == check_bookIssue_record.id).first()
+    return latest_record
+
+
+# book return process   # delete bookIssues by id
+@app.delete("/bookIssues/delete_bookIssue={bookIssue_id}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
+async def delete_bookIssue_by_id(bookIssue_id: str, db: db_dependency):
     bookIssue = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).first()
     if bookIssue is None:
         raise HTTPException(status_code=404, detail="book issues not found!")
     
     db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).delete()
-    db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).update({"copies": modelTables.Book.copies + 1})
+    book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).first().copies
+    db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).update({"copies": book_copies + 1})
     db.query(modelTables.User).filter(modelTables.User.id == bookIssue.user_id).update({"has_issued": False})
     db.commit()
     return {"message": "book issue details deleted successfully"}
