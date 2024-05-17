@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
 import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { Box, Modal, Typography } from "@mui/material";
 import { NotificationManager } from "react-notifications";
 import { DriveFileRenameOutline, Delete } from "@mui/icons-material";
-import { Box, Modal, Typography } from "@mui/material";
 
 function AllBooks() {
   const api = "http://127.0.0.1:8000";
@@ -77,6 +77,30 @@ function AllBooks() {
     }
   };
 
+  const handleEditBook = async () => {
+    let bookIdToEdit = newBookDetails?.id;
+    if (bookIdToEdit !== "") {
+      try {
+        await axios
+          .put(
+            `${api}/books/update_book_by_id=${bookIdToEdit}`,
+            newBookDetails,
+            { headers }
+          )
+          .then((res) => {
+            res?.data && getAllBooks();
+            setOpenAddEditBookModel("");
+            setNewBookDetails({});
+            NotificationManager.success("Book updated successfully");
+          });
+      } catch {
+        NotificationManager.error("Error in updating book!");
+      }
+    } else {
+      NotificationManager.error("Book not found!");
+    }
+  };
+
   useEffect(() => {
     getAllBooks();
   }, []);
@@ -127,7 +151,10 @@ function AllBooks() {
                       <td>
                         <button
                           className="nav-button"
-                          onClick={() => setOpenAddEditBookModel("edit")}
+                          onClick={() => {
+                            setNewBookDetails(book);
+                            setOpenAddEditBookModel("edit");
+                          }}
                         >
                           <DriveFileRenameOutline />
                         </button>
@@ -147,8 +174,11 @@ function AllBooks() {
         </div>
       </div>
       <Modal
-        open={openAddEditBookModel === "add"}
-        onClose={() => setOpenAddEditBookModel("")}
+        open={openAddEditBookModel === "add" || openAddEditBookModel === "edit"}
+        onClose={() => {
+          setOpenAddEditBookModel("");
+          setNewBookDetails({});
+        }}
         aria-labelledby="modal-modal-title"
       >
         <Box sx={style}>
@@ -159,7 +189,9 @@ function AllBooks() {
             color="black"
             mb="10px"
           >
-            Please Fill New Book Details
+            {openAddEditBookModel === "edit"
+              ? "Update book details here"
+              : "Please Fill New Book Details"}
           </Typography>
           <input
             type="text"
@@ -217,14 +249,21 @@ function AllBooks() {
           <div className="book-add-button">
             <input
               type="button"
-              value="Add"
+              value={openAddEditBookModel === "edit" ? "Edit" : "Add"}
               disabled={Object.values(newBookDetails).includes("")}
-              onClick={() => handleAddNewBook()}
+              onClick={() => {
+                openAddEditBookModel === "edit"
+                  ? handleEditBook()
+                  : handleAddNewBook();
+              }}
             />
             <input
               type="button"
               value="Close"
-              onClick={() => setOpenAddEditBookModel("")}
+              onClick={() => {
+                setOpenAddEditBookModel("");
+                setNewBookDetails({});
+              }}
             />
           </div>
         </Box>

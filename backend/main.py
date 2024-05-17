@@ -39,7 +39,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 #path
-origins = ['http://localhost:3000']
+origins = ['http://localhost:3001']
 
 #middleware
 app.add_middleware(
@@ -415,24 +415,57 @@ async def get_book_by_id(book_id:str, db:db_dependency):
 
 # update book by id
 @app.put("/books/update_book_by_id={book_id}", status_code=status.HTTP_200_OK, tags=["book"])
-async def update_book(book_id:str, updated_book:Book, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
+async def update_book(book_id:str, updated_book:BookRequest, db:db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
     if not current_librarian:
         raise HTTPException(401, detail="You are not authenticated")
     
     book = db.query(modelTables.Book).filter(modelTables.Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="book not found!")
+
+    book_author = db.query(modelTables.Author).filter(modelTables.Author.name == updated_book.author).first()
+    book_publisher = db.query(modelTables.Publisher).filter(modelTables.Publisher.name == updated_book.publisher).first()
+    book_category = db.query(modelTables.Category).filter(modelTables.Category.name == updated_book.category).first()
+
+    #if author & publisher not available, add them in respective tables
+    if book_author is None:
+        db_author = modelTables.Author(
+            name = updated_book.author
+        )
+        db.add(db_author)
+        db.commit()
+        new_author = db.query(modelTables.Author).order_by(modelTables.Author.id.desc()).first()
+        book_author = new_author
+
+    if book_publisher is None:
+        db_publisher = modelTables.Publisher(
+            name = updated_book.publisher
+        )
+        db.add(db_publisher)
+        db.commit()
+        new_publisher = db.query(modelTables.Publisher).order_by(modelTables.Publisher.id.desc()).first()
+        book_publisher = new_publisher
+
+    if book_category is None:
+        db_category = modelTables.Category(
+            name = updated_book.category
+        )
+        db.add(db_category)
+        db.commit()
+        new_category = db.query(modelTables.Category).order_by(modelTables.Category.id.desc()).first()
+        book_category = new_category
     
     updated_book_details ={
         "title": updated_book.title,
-        "author": updated_book.author,
-        "publisher": updated_book.publisher,
+        "author": book_author.id,
+        "publisher": book_publisher.id,
         "copies": updated_book.copies
     }
 
     db.query(modelTables.Book).filter(modelTables.Book.id == book_id).update(updated_book_details)
     db.commit()
-    return {"message": "Book details updated successfully"}
+    updated_book = db.query(modelTables.Book).filter(modelTables.Book.id == book_id).first()
+    return updated_book
 
 
 # delete book by id
