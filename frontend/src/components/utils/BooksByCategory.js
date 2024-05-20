@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./booksByCategory.css";
-import {
-  NotificationManager,
-} from "react-notifications";
+import { NotificationManager } from "react-notifications";
 import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
+import { checkToken } from "../utils/commonFunctionalities";
 
 function BooksByCategory() {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ function BooksByCategory() {
   const headers = {
     Authorization: `Bearer ${token}`,
   };
-
   const [booksBycategory, setBookByCategory] = useState([]);
 
   const getBooksByCategory = async (category) => {
@@ -55,7 +53,7 @@ function BooksByCategory() {
     if (category) {
       getBooksByCategory(category);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
   return (
@@ -69,7 +67,13 @@ function BooksByCategory() {
           />
           <SearchIcon className="input-box-icon" />
         </div>
-        <button onClick={() => navigate("/home")}>Back to Home</button>
+        <button
+          onClick={() =>
+            checkToken() ? navigate("/home") : navigate("/user-home")
+          }
+        >
+          Back to Home
+        </button>
       </div>
       <div className="catbook-container">
         <h2>Available Books:</h2>

@@ -98,7 +98,7 @@ function UserInfo() {
     if (book.issue_status === "issued") {
       try {
         await axios
-          .delete(`${api}/bookIssues/delete_bookIssue=${book.id}`)
+          .put(`${api}/bookIssues/return_bookIssue=${book.id}`)
           .then((res) => {
             res?.data && NotificationManager.success(res.data?.message);
             getBookDetailsByUser();
@@ -115,7 +115,7 @@ function UserInfo() {
         <div className="container-fluid">
           <div className="header_logo">
             <span style={{ color: "azure", fontFamily: "math" }}>
-              Welcome to library, <b>{username}</b>
+              Welcome to library, <b>{!openUserModal && username}</b>
             </span>
           </div>
           <div
@@ -147,31 +147,40 @@ function UserInfo() {
             </thead>
             <tbody>
               {bookDetailsByUser?.length > 0 &&
-                bookDetailsByUser.map((book, index) => {
-                  return (
-                    <tr
-                      key={book?.id}
-                      data-toggle="modal"
-                      data-target="#myModal"
-                    >
-                      <td>{index + 1}</td>
-                      <td>{book?.bookname}</td>
-                      <td>{book?.issue_status}</td>
-                      <td>
-                        {book?.issue_status === "issued" ? (
-                          <button
-                            className="nav-button"
-                            onClick={() => handleReturnBook(book)}
-                          >
-                            Return
-                          </button>
-                        ) : (
-                          "--"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                bookDetailsByUser
+                  ?.filter((book) => book?.issue_status !== "returned")
+                  ?.map((book, index) => {
+                    return (
+                      <tr
+                        key={book?.id}
+                        data-toggle="modal"
+                        data-target="#myModal"
+                      >
+                        <td>{index + 1}</td>
+                        <td>{book?.bookname}</td>
+                        <td>{book?.issue_status}</td>
+                        <td>
+                          {book?.issue_status === "issued" ? (
+                            <button
+                              className="nav-button"
+                              onClick={() => handleReturnBook(book)}
+                            >
+                              Return
+                            </button>
+                          ) : (
+                            "--"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              {bookDetailsByUser?.filter(
+                (book) => book?.issue_status !== "returned"
+              ).length === 0 && (
+                <tr>
+                  <td colSpan="4">No book found</td>
+                </tr>
+              )}
             </tbody>
           </table>
           {bookDetailsByUser?.length === 0 && <h4>No books found!</h4>}

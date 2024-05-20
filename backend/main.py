@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Annotated
-from datetime import datetime
 import modelTables
 from model import UserBase, Librarian, Book, BookRequest, Category, Author, Publisher, BookIssueRequest, BookIssueRecord, BookSearch, Token
 
@@ -38,13 +37,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # FastAPI OAuth2PasswordBearer for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-#path
-origins = ['http://localhost:3001']
 
 #middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = origins,
+    allow_origins = ['*'],
     allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"],
@@ -317,7 +314,6 @@ async def get_details(book, db:db_dependency):
     }
 
     return book_details
-
 
 
 # post book
@@ -740,6 +736,11 @@ async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_d
         raise HTTPException(status_code=404, detail="User for issue not found!")
     elif checkUserID.has_issued:
         raise HTTPException(status_code=400, detail="User is not valid to issue book!")
+    
+    all_bookIssues = await get_all_bookeIssues(db)
+    for book in all_bookIssues:
+        if book.book_id == checkBookID.id and book.user_id == checkUserID.id and checkUserID.has_issued == True:
+            raise HTTPException(status_code=400, detail="User has already requested to issue this book!")
 
     issue_time = datetime.now()
 
@@ -758,9 +759,8 @@ async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_d
         issue_status= issue_status
     )
     db.add(db_book_issue)
-    db.commit()
 
-    if issue_status == "issued":
+    if current_librarian:
         book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).first().copies
         db.query(modelTables.Book).filter(modelTables.Book.id == book_issue_request.book_id).update(
             {"copies": book_copies - 1}
@@ -768,6 +768,7 @@ async def create_bookIssue_record(book_issue_request: BookIssueRequest, db: db_d
         db.query(modelTables.User).filter(modelTables.User.id == book_issue_request.user_id).update(
             {"has_issued": True}
         )
+    db.commit()
 
     latest_issue_details = db.query(modelTables.BookIssueRecord).order_by(modelTables.BookIssueRecord.id.desc()).first()
     return latest_issue_details
@@ -826,14 +827,55 @@ async def update_bookIssue(bookIssue_id: int, db:db_dependency):
     if check_bookIssue_record is None:
         raise HTTPException(status_code=404, detail="No book issue record!")
     
-    if check_bookIssue_record.issue_status == "pending":
+    check_user = db.query(modelTables.User).filter(modelTables.User.id == check_bookIssue_record.user_id).first()
+    if check_user.has_issued == True:
+        raise HTTPException(status_code=400, detail="user is not eligible to issue book!")
+    
+    if check_bookIssue_record.issue_status == "pending" and check_user.has_issued == False:
         db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).update({"issue_status": "issued", "issued_by": current_librarian_id})
         db.query(modelTables.User).filter(modelTables.User.id == check_bookIssue_record.user_id).update({"has_issued": True})
         book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == check_bookIssue_record.book_id).first().copies
-        db.query(modelTables.Book).filter(modelTables.Book.id == check_bookIssue_record.book_id).update({"copies": book_copies - 1})
+        
+        if book_copies < 1:
+            raise HTTPException(status_code=400, detail="Book not available")
+        else:
+            db.query(modelTables.Book).filter(modelTables.Book.id == check_bookIssue_record.book_id).update({"copies": book_copies - 1})
         db.commit()
+
     latest_record = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == check_bookIssue_record.id).first()
     return latest_record
+
+
+# book return process   # return bookIssues by id
+@app.put("/bookIssues/return_bookIssue={bookIssue_id}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
+async def return_bookIssue(bookIssue_id: str, db: db_dependency):
+    bookIssue = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).first()
+    if bookIssue is None:
+        raise HTTPException(status_code=404, detail="book issues not found!")
+    
+    db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).update({"issue_status": "returned"})
+    book_copies = db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).first().copies
+    db.query(modelTables.Book).filter(modelTables.Book.id == bookIssue.book_id).update({"copies": book_copies + 1})
+    db.query(modelTables.User).filter(modelTables.User.id == bookIssue.user_id).update({"has_issued": False})
+    db.commit()
+    return {"message": "Book has been returned successfully"}
+
+
+# book return process    # delete bookIssues by id
+@app.delete("/bookIssues/delete_returned_book={bookIssue_id}", status_code=status.HTTP_200_OK, tags=["bookIssue"])
+async def delete_returned_book(bookIssue_id: str, db: db_dependency, current_librarian: Librarian = Depends(get_current_active_librarian)):
+    if not current_librarian:
+        raise HTTPException(401, detail="You are not authenticated")
+
+    bookIssue = db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).first()
+    if bookIssue is None:
+        raise HTTPException(status_code=404, detail="book issues not found!")
+    if bookIssue.issue_status == "returned":
+        db.query(modelTables.BookIssueRecord).filter(modelTables.BookIssueRecord.id == bookIssue_id).delete()
+        db.commit()
+    else:
+        raise HTTPException(status_code=400, detail="Book has not been returned to the library")
+    return {"message": "Returned book deleted successfully"}
 
 
 # book return process   # delete bookIssues by id
@@ -878,6 +920,18 @@ async def get_book_by_author(author:str, db:db_dependency):
     return search_books
 
 
+# search book by publisher
+@app.get("/bookSearch/get_book_by_publisher={publisher}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
+async def get_book_by_publisher(publisher:str, db:db_dependency):
+    all_books = await get_books_details(db)
+    search_books = []
+    for book in all_books:
+        if publisher.lower() in book["publisher"].lower():
+            search_books.append(book)
+
+    return search_books
+
+
 # # search by title and author
 @app.get("/bookSearch/get_book_by_title_and_author/{title}/{author}", status_code=status.HTTP_200_OK, tags=["bookSearch"])
 async def get_books_by_title_and_author(title:str, author: str, db:db_dependency):
@@ -888,6 +942,7 @@ async def get_books_by_title_and_author(title:str, author: str, db:db_dependency
             searched_books.append(book)
             
     return searched_books
+
 
 # search by title and publisher
 @app.get("/bookSearch/get_book_by_title_and_publisher/{title}/{publisher}", status_code=status.HTTP_200_OK, tags=["bookSearch"])

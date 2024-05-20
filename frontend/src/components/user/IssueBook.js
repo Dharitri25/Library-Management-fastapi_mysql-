@@ -23,65 +23,93 @@ function IssueBook() {
   });
 
   const getBooksToShow = async () => {
-    if (issueDetails.title !== "") {
-      if (
-        issueDetails.title !== "" &&
-        issueDetails.author === "" &&
-        issueDetails.publisher === ""
-      ) {
-        try {
-          await axios
-            .get(`${api}/bookSearch/get_book_by_title=${issueDetails.title}`)
-            .then((res) => {
-              res.data && setSearchedBooks(res.data);
-            });
-        } catch (err) {
-          NotificationManager.error("Error in getting searched books!");
-        }
-      } else if (
-        issueDetails.title !== "" &&
-        issueDetails.author !== "" &&
-        issueDetails.publisher === ""
-      ) {
-        try {
-          await axios
-            .get(
-              `${api}/bookSearch/get_book_by_title_and_author/${issueDetails.title}/${issueDetails.author}`
-            )
-            .then((res) => {
-              res.data && setSearchedBooks(res.data);
-            });
-        } catch (err) {
-          NotificationManager.error("Error in getting searched books!");
-        }
-      } else if (
-        issueDetails.title !== "" &&
-        issueDetails.author === "" &&
-        issueDetails.publisher !== ""
-      ) {
-        try {
-          await axios
-            .get(
-              `${api}/bookSearch/get_book_by_title_and_publisher/${issueDetails?.title}/${issueDetails?.publisher}`
-            )
-            .then((res) => {
-              res.data && setSearchedBooks(res.data);
-            });
-        } catch (err) {
-          NotificationManager.error("Error in getting searched books!");
-        }
-      } else if (!Object.values(issueDetails).includes("")) {
-        try {
-          await axios
-            .get(
-              `${api}/bookSearch/get_book_by_title_author_publisher/${issueDetails?.title}/${issueDetails?.author}/${issueDetails?.publisher}`
-            )
-            .then((res) => {
-              res.data && setSearchedBooks(res.data);
-            });
-        } catch (err) {
-          NotificationManager.error("Error in getting searched books!");
-        }
+    if (
+      issueDetails.title !== "" &&
+      issueDetails.author === "" &&
+      issueDetails.publisher === ""
+    ) {
+      try {
+        await axios
+          .get(`${api}/bookSearch/get_book_by_title=${issueDetails.title}`)
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
+      }
+    } else if (
+      issueDetails.title === "" &&
+      issueDetails.author !== "" &&
+      issueDetails.publisher === ""
+    ) {
+      try {
+        await axios
+          .get(`${api}/bookSearch/get_book_by_author=${issueDetails.author}`)
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
+      }
+    } else if (
+      issueDetails.title === "" &&
+      issueDetails.author === "" &&
+      issueDetails.publisher !== ""
+    ) {
+      try {
+        await axios
+          .get(
+            `${api}/bookSearch/get_book_by_publisher=${issueDetails.publisher}`
+          )
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
+      }
+    } else if (
+      issueDetails.title !== "" &&
+      issueDetails.author !== "" &&
+      issueDetails.publisher === ""
+    ) {
+      try {
+        await axios
+          .get(
+            `${api}/bookSearch/get_book_by_title_and_author/${issueDetails.title}/${issueDetails.author}`
+          )
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
+      }
+    } else if (
+      issueDetails.title !== "" &&
+      issueDetails.author === "" &&
+      issueDetails.publisher !== ""
+    ) {
+      try {
+        await axios
+          .get(
+            `${api}/bookSearch/get_book_by_title_and_publisher/${issueDetails?.title}/${issueDetails?.publisher}`
+          )
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
+      }
+    } else if (!Object.values(issueDetails).includes("")) {
+      try {
+        await axios
+          .get(
+            `${api}/bookSearch/get_book_by_title_author_publisher/${issueDetails?.title}/${issueDetails?.author}/${issueDetails?.publisher}`
+          )
+          .then((res) => {
+            res.data && setSearchedBooks(res.data);
+          });
+      } catch (err) {
+        NotificationManager.error("Error in getting searched books!");
       }
     }
   };
@@ -156,12 +184,6 @@ function IssueBook() {
             </div>
           </form>
         </div>
-        {/* <div className="sub-content">
-          <div className="s-part">
-            New to libray?
-            <span>Register</span>
-          </div>
-        </div> */}
       </div>
       <div className="books-table">
         <div className="table-wrapper">
@@ -175,34 +197,46 @@ function IssueBook() {
                 <th>Publisher</th>
                 <th>category</th>
                 <th>copies</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {searchedBooks?.length > 0 &&
-                searchedBooks.map((book) => {
-                  return (
-                    <tr
-                      key={book?.id}
-                      onClick={() => setOpenIssueBook(book?.id)}
-                      data-toggle="modal"
-                      data-target="#myModal"
-                    >
-                      <td>{book?.id}</td>
-                      <td>{book?.title}</td>
-                      <td>{book?.author}</td>
-                      <td>{book?.publisher}</td>
-                      <td>{book?.category}</td>
-                      <td>{book?.copies}</td>
-                    </tr>
-                  );
-                })}
+                searchedBooks
+                  ?.filter((book) => book?.copies !== 0)
+                  ?.map((book) => {
+                    return (
+                      <tr
+                        key={book?.id}
+                        data-toggle="modal"
+                        data-target="#myModal"
+                      >
+                        <td>{book?.id}</td>
+                        <td>{book?.title}</td>
+                        <td>{book?.author}</td>
+                        <td>{book?.publisher}</td>
+                        <td>{book?.category}</td>
+                        <td>{book?.copies}</td>
+                        <td>
+                          <button
+                            className="nav-button"
+                            onClick={() => setOpenIssueBook(book?.id)}
+                          >
+                            Issue
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
             </tbody>
           </table>
           {searchedBooks?.length === 0 && <h4>No books found!</h4>}
           {!searchedBooks && <h4>Enter details to see book availability</h4>}
         </div>
       </div>
-      {openIssueBook && <BookDetails book={openIssueBook} setOpenIssueBook={setOpenIssueBook}/>}
+      {openIssueBook && (
+        <BookDetails book={openIssueBook} setOpenIssueBook={setOpenIssueBook} />
+      )}
     </div>
   );
 }

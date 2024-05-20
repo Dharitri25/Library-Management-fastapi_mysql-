@@ -7,16 +7,6 @@ import {
   NotificationContainer,
   NotificationManager,
 } from "react-notifications";
-import ClassIcon from "@mui/icons-material/Class";
-import GroupIcon from "@mui/icons-material/Group";
-import SearchIcon from "@mui/icons-material/Search";
-import Person4Icon from "@mui/icons-material/Person4";
-import MenuOpenIcon from "@mui/icons-material/MenuOpen";
-import ReorderIcon from "@mui/icons-material/Reorder";
-import AutoStoriesIcon from "@mui/icons-material/AutoStories";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import {
   List,
   Drawer,
@@ -26,18 +16,29 @@ import {
   ListItemText,
   ListItemButton,
 } from "@mui/material";
+import {
+  Class,
+  Group,
+  Search,
+  Person4,
+  Reorder,
+  MenuOpen,
+  AutoStories,
+  ChevronLeft,
+  ChevronRight,
+  LibraryBooks,
+} from "@mui/icons-material";
 import AllUsers from "../admin/AllUsers";
 import AllBooks from "../admin/AllBooks";
 import AllBookIssues from "../admin/AllBookIssues";
 import AllLibrarians from "../admin/AllLibrarians";
-import { checkToken, handleLogout } from "./commonFunctionalities";
+import { handleLogout } from "./commonFunctionalities";
 
 const drawerWidth = 240;
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
   justifyContent: "flex-end",
 }));
@@ -85,10 +86,10 @@ function Home() {
             edge="start"
             sx={{ mr: 2, ...(open && { display: "none" }) }}
           >
-            <MenuOpenIcon />
+            <MenuOpen />
           </IconButton>
           <div className="welcome_logo">
-            <AutoStoriesIcon />
+            <AutoStories />
             <span>Library</span>
           </div>
           <div
@@ -98,21 +99,27 @@ function Home() {
             <ul className="navbar-nav me-auto mb-2 mb-lg-0">
               <div className="input-box">
                 <input type="text" className="form-control" />
-                <SearchIcon className="input-box-icon" />
+                <Search className="input-box-icon" />
               </div>
               <li className="nav-item">
                 <button
                   className="nav-button"
                   onClick={() => {
                     handleLogout().then(() => {
-                      // checkToken();
                       navigate("/");
+                      window.location.reload();
                     });
                   }}
                 >
                   Logout
                 </button>
-                <button className="nav-button" onClick={() => navigate("/")}>
+                <button
+                  className="nav-button"
+                  onClick={() => {
+                    navigate("/");
+                    window.location.reload();
+                  }}
+                >
                   Back
                 </button>
               </li>
@@ -137,36 +144,32 @@ function Home() {
       >
         <DrawerHeader>
           <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "ltr" ? (
-              <ChevronLeftIcon />
-            ) : (
-              <ChevronRightIcon />
-            )}
+            {theme.direction === "ltr" ? <ChevronLeft /> : <ChevronRight />}
           </IconButton>
         </DrawerHeader>
         <Divider />
         <List>
           <ListItem disablePadding onClick={() => setSelectedTab("librarians")}>
             <ListItemButton className="listItemButton">
-              <Person4Icon />
+              <Person4 />
               <ListItemText primary={"LIBRARIANS"} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding onClick={() => setSelectedTab("users")}>
             <ListItemButton className="listItemButton">
-              <GroupIcon />
+              <Group />
               <ListItemText primary={"USERS"} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding onClick={() => setSelectedTab("books")}>
             <ListItemButton className="listItemButton">
-              <LibraryBooksIcon />
+              <LibraryBooks />
               <ListItemText primary={"BOOKS"} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding onClick={() => setSelectedTab("bookIssues")}>
             <ListItemButton className="listItemButton">
-              <ReorderIcon />
+              <Reorder />
               <ListItemText primary={"BOOKS ISSUE"} />
             </ListItemButton>
           </ListItem>
@@ -193,7 +196,7 @@ function Home() {
                     onClick={() => navigate(`/books_by_category/${cat?.id}`)}
                   >
                     <div className="icon-wrapper">
-                      <ClassIcon className="category" />
+                      <Class className="category" />
                     </div>
                     <div className="project-name">
                       <p>{cat?.name}</p>

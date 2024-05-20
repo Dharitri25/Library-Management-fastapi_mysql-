@@ -32,10 +32,25 @@ function AllBookIssues() {
               );
             getAllBookIssues();
           });
+      } catch (err) {
+        NotificationManager.error(err.response.data.detail);
+      }
+    }
+  };
+
+  const handleDeleteIssueBook = async (bookIssueId) => {
+    if (bookIssueId !== "") {
+      try {
+        await axios
+          .delete(`${api}/bookIssues/delete_returned_book=${bookIssueId}`, {
+            headers,
+          })
+          .then((res) => {
+            res?.data && NotificationManager.success(res.data?.message);
+            getAllBookIssues();
+          });
       } catch {
-        NotificationManager.error(
-          "Error in updating issue status of a book issue record!"
-        );
+        NotificationManager.error("Error in removing returned book record!");
       }
     }
   };
@@ -82,6 +97,13 @@ function AllBookIssues() {
                             onClick={() => handlePendingIssueBook(book?.id)}
                           >
                             Issue
+                          </button>
+                        ) : book?.issue_status === "returned" ? (
+                          <button
+                            className="nav-button"
+                            onClick={() => handleDeleteIssueBook(book?.id)}
+                          >
+                            Remove
                           </button>
                         ) : (
                           "--"

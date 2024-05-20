@@ -62,7 +62,6 @@ function AllBooks() {
 
   const handleAddNewBook = async () => {
     if (!Object.values(newBookDetails).includes("")) {
-      console.log({ newBookDetails });
       try {
         await axios
           .post(`${api}/books/`, newBookDetails, { headers })

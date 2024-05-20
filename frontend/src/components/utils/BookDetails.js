@@ -35,7 +35,7 @@ function BookDetails({ book, setOpenIssueBook }) {
         NotificationManager.success("Book issued proceeded successfully");
       });
     } catch (err) {
-      NotificationManager.error(err);
+      NotificationManager.error(err.response.data.detail);
     }
   };
 
@@ -71,7 +71,7 @@ function BookDetails({ book, setOpenIssueBook }) {
 
   useEffect(() => {
     getBookDetails();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
 
   return (
